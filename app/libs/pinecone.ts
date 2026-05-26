@@ -16,16 +16,16 @@
  */
 
 import {
-	Pinecone,
-	RecordMetadata,
-	ScoredPineconeRecord,
-} from '@pinecone-database/pinecone';
-import { openaiClient } from '../libs/openai/openai';
+  Pinecone,
+  RecordMetadata,
+  ScoredPineconeRecord,
+} from "@pinecone-database/pinecone";
+import { openaiClient } from "../libs/openai/openai";
 
 // Initialize Pinecone client with your API key
 // Get your free API key at: https://app.pinecone.io/
 export const pineconeClient = new Pinecone({
-	apiKey: process.env.PINECONE_API_KEY as string,
+  apiKey: process.env.PINECONE_API_KEY as string,
 });
 
 /**
@@ -36,28 +36,28 @@ export const pineconeClient = new Pinecone({
  * @returns Array of matching documents with similarity scores
  */
 export const searchDocuments = async (
-	query: string,
-	topK: number = 3 // TRY CHANGING: Increase to 5-10 for more results, decrease to 1-2 for fewer
+  query: string,
+  topK: number = 3, // TRY CHANGING: Increase to 5-10 for more results, decrease to 1-2 for fewer
 ): Promise<ScoredPineconeRecord<RecordMetadata>[]> => {
-	// Connect to the  index (collection of vectors)
-	const index = pineconeClient.Index(process.env.PINECONE_INDEX!);
+  // Connect to the  index (collection of vectors)
+  const index = pineconeClient.Index(process.env.PINECONE_INDEX!);
 
-	// Convert the search query into a vector embedding using OpenAI
-	const queryEmbedding = await openaiClient.embeddings.create({
-		model: 'text-embedding-3-small',
-		dimensions: 512,
-		input: query,
-	});
+  // Convert the search query into a vector embedding using OpenAI
+  const queryEmbedding = await openaiClient.embeddings.create({
+    model: "text-embedding-3-small",
+    dimensions: 512,
+    input: query,
+  });
 
-	// Extract the actual embedding array from the API response
-	const embedding = queryEmbedding.data[0].embedding;
+  // Extract the actual embedding array from the API response
+  const embedding = queryEmbedding.data[0].embedding;
 
-	// Search the vector database for similar embeddings
-	const docs = await index.query({
-		vector: embedding,
-		topK, // How many results to return
-		includeMetadata: true, // Include the original text content with results
-	});
+  // Search the vector database for similar embeddings
+  const docs = await index.query({
+    vector: embedding,
+    topK, // How many results to return
+    includeMetadata: true, // Include the original text content with results
+  });
 
-	return docs.matches;
+  return docs.matches;
 };

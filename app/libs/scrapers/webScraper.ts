@@ -71,7 +71,7 @@ export async function scrapeWithCheerio(
   }
 }
 
-function cleanText(text: String) {
+export function cleanText(text: String) {
   return (
     text
       // Normalize Unicode characters into more standard text forms (e.g. Ｈｅｌｌｏ -> Hello)
@@ -92,6 +92,13 @@ function cleanText(text: String) {
       // Normalize ellipsis characters
       .replace(/…/g, "...")
 
+      // Removing some boilerplate phrases
+      .replace(/click here/gi, "")
+      .replace(/buy now/gi, "")
+      .replace(/terms and conditions/gi, "")
+      .replace(/all rights reserved/gi, "")
+      .replace(/accept cookies/gi, "")
+
       // Normalize non-breaking spaces
       .replace(/\u00A0/g, " ")
 
@@ -100,13 +107,6 @@ function cleanText(text: String) {
 
       // Normalize line breaks
       .replace(/\n+/g, "\n")
-
-      // Removing some boilerplate phrases
-      .replace(/click here/gi, "")
-      .replace(/buy now/gi, "")
-      .replace(/terms and conditions/gi, "")
-      .replace(/all rights reserved/gi, "")
-      .replace(/accept cookies/gi, "")
 
       .trim()
   );

@@ -13,31 +13,71 @@ export async function ragAgent(request: AgentRequest): Promise<AgentResponse> {
   });
 
   const embedding = embeddingResponse.data[0].embedding;
+
   //   2. Query Pinecone for similar documents
   const index = pineconeClient.Index(process.env.PINECONE_INDEX as string);
 
   const queryResponse = await index.query({
     vector: embedding,
-    topK: 5,
+    topK: 10,
     includeMetadata: true,
   });
 
+  //   2a. Re-rank the results using Pinecone's inference API
+  const documents = queryResponse.matches
+    .map((match) => (match.metadata?.text ?? match.metadata?.content) as string)
+    .filter(Boolean);
+
+  // topN: Number of top results to return after reranking
+  // - Lower values (3-5) = more focused, highest relevance only
+  // - Higher values (10+) = more context, but may include less relevant docs
+  // returnDocuments: true means we get the actual text back, not just scores
+  const reranked = await pineconeClient.inference.rerank(
+    "bge-reranker-v2-m3",
+    request.query,
+    documents,
+    { topN: 5, returnDocuments: true },
+  );
+
+  //   2b. Only keep documents above a score threshold
+  const scoreThreshold = 0.6;
+  const rerankedDataWithThreshold = reranked.data.filter(
+    (result) => result.score >= scoreThreshold,
+  );
+
   //   3. Extract text from results
-  const retrievedContext = queryResponse.matches
-    .map((match) => match.metadata?.text)
+  const retrievedContext = rerankedDataWithThreshold
+    .map((result) => result.document?.text)
     .filter(Boolean)
     .join("\n\n");
 
-  //   4. Build system prompt with context
-  const systemPrompt = `You are a helpful assistant that answers questions based on the provided context.
+  //   4. Build system prompt with context or inform the user that there is not enough info if
+  //      no results pass threshold
+  const systemPrompt =
+    rerankedDataWithThreshold.length > 0
+      ? `You are a helpful assistant that answers questions based on the provided context.
+   Use the provided context to answer the user's question.`
+      : `Respond with "I don't have enough information to answer that"`;
 
-	Use the provided context to answer the user's question. If the context doesn't contain enough information, state so clearly but still try your best to answer the query.`;
+  console.log(
+    "Retained results with their scores:",
+    rerankedDataWithThreshold.map(
+      (d) => `[${d.score}- "${d.document?.text}]"]`,
+    ),
+  );
+
+  const discardedData = reranked.data.filter(
+    (result) => result.score < scoreThreshold,
+  );
+  console.log(
+    "Discarded results with their scores:",
+    discardedData.map((d) => `[${d.score} - "${d.document?.text}]"`),
+  );
+
   //   5. Stream the response
   return streamText({
     model: openai("gpt-4o"),
     system: systemPrompt,
     prompt: `Context: ${retrievedContext}\n\nUser Query: ${request.query}`,
   });
-
-  // Then follow Module 9.2 to add reranking for better retrieval quality.
 }

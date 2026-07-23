@@ -75,19 +75,8 @@ export async function ragAgent(request: AgentRequest): Promise<AgentResponse> {
    Use the provided context to answer the user's question.`
       : `Respond with "I don't have enough information to answer that"`;
 
-  console.log(
-    "Retained results with their scores:",
-    rerankedDataWithThreshold.map(
-      (d) => `[${d.score}- "${d.document?.text}]"]`,
-    ),
-  );
-
   const discardedData = reranked.data.filter(
     (result) => result.score < scoreThreshold,
-  );
-  console.log(
-    "Discarded results with their scores:",
-    discardedData.map((d) => `[${d.score} - "${d.document?.text}]"`),
   );
 
   //   5. Stream the response

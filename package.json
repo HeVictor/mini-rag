@@ -10,6 +10,7 @@
     "test": "jest",
     "test:chunking": "jest chunking",
     "test:selector": "jest selector",
+    "test:judge": "jest llm-judge",
     "estimate-costs": "npx ts-node app/scripts/estimate-training-cost.ts",
     "train": "npx ts-node app/scripts/upload-training-data.ts",
     "scrape-content": "curl http://localhost:3000/api/scrape-content",
@@ -43,6 +44,7 @@
     "fs": "0.0.1-security",
     "husky": "^9.1.7",
     "js-tiktoken": "^1.0.19",
+    "langsmith": "^0.8.3",
     "lucide-react": "^0.514.0",
     "marked": "^17.0.1",
     "next": "15.1.6",
@@ -51,6 +53,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",
+    "uuid": "^14.0.1",
     "zod": "^3.24.2"
   },
   "devDependencies": {

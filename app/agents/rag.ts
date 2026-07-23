@@ -1,4 +1,4 @@
-import { AgentRequest, AgentResponse } from "./types";
+import { AgentRequest, AgentResponse, Source } from "./types";
 import { pineconeClient } from "@/app/libs/pinecone";
 import { openaiClient } from "@/app/libs/openai/openai";
 import { openai } from "@ai-sdk/openai";
@@ -40,7 +40,7 @@ export async function ragAgent(request: AgentRequest): Promise<AgentResponse> {
   );
 
   //   2b. Only keep documents above a score threshold
-  const scoreThreshold = 0.6;
+  const scoreThreshold = 0.1;
   const rerankedDataWithThreshold = reranked.data.filter(
     (result) => result.score >= scoreThreshold,
   );
@@ -50,6 +50,22 @@ export async function ragAgent(request: AgentRequest): Promise<AgentResponse> {
     .map((result) => result.document?.text)
     .filter(Boolean)
     .join("\n\n");
+
+  //   3a. Extract the sources from the documents we used for the response context
+  const contextSources: Source[] = rerankedDataWithThreshold.map((data) => {
+    const metadata = queryResponse.matches[data.index].metadata;
+
+    return {
+      title: (metadata?.title || "Untitled") as string,
+      textSample: ((data.document?.text)
+        .trim()
+        .split(/\s+/)
+        .slice(0, 3)
+        .join(" ") + "...") as string, // Get the first 3 words from the chunk
+      url: (metadata?.url || "") as string,
+      score: data.score || 0,
+    };
+  });
 
   //   4. Build system prompt with context or inform the user that there is not enough info if
   //      no results pass threshold
@@ -75,9 +91,12 @@ export async function ragAgent(request: AgentRequest): Promise<AgentResponse> {
   );
 
   //   5. Stream the response
-  return streamText({
-    model: openai("gpt-4o"),
-    system: systemPrompt,
-    prompt: `Context: ${retrievedContext}\n\nUser Query: ${request.query}`,
-  });
+  return {
+    streamResult: streamText({
+      model: openai("gpt-4o"),
+      system: systemPrompt,
+      prompt: `Context: ${retrievedContext}\n\nUser Query: ${request.query}`,
+    }),
+    sources: contextSources,
+  };
 }

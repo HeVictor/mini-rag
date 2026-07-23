@@ -8,121 +8,139 @@
  * These tests call the API route handler directly - no server needed!
  */
 
-import { POST } from '@/app/api/select-agent/route';
-import { NextRequest } from 'next/server';
+import { POST } from "@/app/api/select-agent/route";
+import { NextRequest } from "next/server";
 
-describe('Selector Agent Routing', () => {
-	// Increase timeout for LLM API calls
-	jest.setTimeout(15000);
+describe("Selector Agent Routing", () => {
+  // Increase timeout for LLM API calls
+  jest.setTimeout(15000);
 
-	// Helper to create a mock NextRequest
-	const createRequest = (query: string): NextRequest => {
-		return {
-			json: async () => ({
-				messages: [{ role: 'user', content: query }],
-			}),
-		} as NextRequest;
-	};
+  // Helper to create a mock NextRequest
+  const createRequest = (query: string): NextRequest => {
+    return {
+      json: async () => ({
+        messages: [{ role: "user", content: query }],
+      }),
+    } as NextRequest;
+  };
 
-	// Helper to call the selector and get response
-	const selectAgent = async (query: string) => {
-		const request = createRequest(query);
-		const response = await POST(request);
-		return response.json();
-	};
+  // Helper to call the selector and get response
+  const selectAgent = async (query: string) => {
+    const request = createRequest(query);
+    const response = await POST(request);
+    return response.json();
+  };
 
-	describe('LinkedIn Agent Routing', () => {
-		it('should route LinkedIn post creation to linkedin agent', async () => {
-			const result = await selectAgent(
-				'Write a LinkedIn post about learning TypeScript'
-			);
+  describe("LinkedIn Agent Routing", () => {
+    it("should route LinkedIn post creation to linkedin agent", async () => {
+      const result = await selectAgent(
+        "Write a LinkedIn post about learning TypeScript",
+      );
 
-			expect(result.agent).toBe('linkedin');
-		});
+      expect(result.agent).toBe("linkedin");
+    });
 
-		it('should route career advice to linkedin agent', async () => {
-			const result = await selectAgent(
-				'What career advice do you have for junior developers?'
-			);
+    it("should route career advice post creation to linkedin agent", async () => {
+      const result = await selectAgent(
+        "I want to write a LinkedIn post asking what career advice would be useful for junior developers?",
+      );
 
-			expect(result.agent).toBe('linkedin');
-		});
+      expect(result.agent).toBe("linkedin");
+    });
 
-		it('should route professional networking questions to linkedin agent', async () => {
-			const result = await selectAgent(
-				'How do I improve my LinkedIn profile?'
-			);
+    it("should route professional networking questions to linkedin agent", async () => {
+      const result = await selectAgent("How do I improve my LinkedIn profile?");
 
-			expect(result.agent).toBe('linkedin');
-		});
-	});
+      expect(result.agent).toBe("linkedin");
+    });
 
-	describe('RAG Agent Routing', () => {
-		it('should route technical documentation questions to rag agent', async () => {
-			const result = await selectAgent('How do React hooks work?');
+    it("should route LinkedIn engagement advice questions to linkedin agent", async () => {
+      const result = await selectAgent(
+        "How can I get more engagement on my LinkedIn posts?",
+      );
 
-			expect(result.agent).toBe('rag');
-			expect(result.query).toBeTruthy();
-		});
+      expect(result.agent).toBe("linkedin");
+    });
+  });
 
-		it('should route coding questions to rag agent', async () => {
-			const result = await selectAgent(
-				'Explain async/await in JavaScript'
-			);
+  describe("RAG Agent Routing", () => {
+    it("should route technical documentation questions to rag agent", async () => {
+      const result = await selectAgent("How do React hooks work?");
 
-			expect(result.agent).toBe('rag');
-		});
+      expect(result.agent).toBe("rag");
+      expect(result.query).toBeTruthy();
+    });
 
-		it('should route framework questions to rag agent', async () => {
-			const result = await selectAgent(
-				'What is the difference between useEffect and useLayoutEffect?'
-			);
+    it("should route coding questions to rag agent", async () => {
+      const result = await selectAgent("Explain async/await in JavaScript");
 
-			expect(result.agent).toBe('rag');
-		});
-	});
+      expect(result.agent).toBe("rag");
+    });
 
-	describe('Response Structure', () => {
-		it('should return valid response structure', async () => {
-			const result = await selectAgent('Any question here');
+    it("should route framework questions to rag agent", async () => {
+      const result = await selectAgent(
+        "What is the difference between useEffect and useLayoutEffect?",
+      );
 
-			// Verify required fields exist
-			expect(result).toHaveProperty('agent');
-			expect(result).toHaveProperty('query');
+      expect(result.agent).toBe("rag");
+    });
 
-			// Verify agent is valid
-			expect(['linkedin', 'rag']).toContain(result.agent);
-		});
+    it("should route questions about quick-start examples about frameworks to rag agent", async () => {
+      const result = await selectAgent(
+        "Give me some examples of getting started with Material UI",
+      );
 
-		it('should refine queries', async () => {
-			const result = await selectAgent('Tell me about hooks');
+      expect(result.agent).toBe("rag");
+      expect(result.query).toBeTruthy();
+    });
+  });
 
-			// Refined query should be non-empty
-			expect(result.query).toBeTruthy();
-			expect(result.query.length).toBeGreaterThan(0);
-		});
-	});
+  describe("Response Structure", () => {
+    it("should return valid response structure", async () => {
+      const result = await selectAgent("Any question here");
 
-	describe('Edge Cases', () => {
-		it('should handle very short queries', async () => {
-			const result = await selectAgent('Help');
+      // Verify required fields exist
+      expect(result).toHaveProperty("agent");
+      expect(result).toHaveProperty("query");
 
-			// Should still route to a valid agent
-			expect(['linkedin', 'rag']).toContain(result.agent);
-		});
+      // Verify agent is valid
+      expect(["linkedin", "rag", "unknown"]).toContain(result.agent);
+    });
 
-		it('should handle out-of-domain queries', async () => {
-			const result = await selectAgent('What is the weather today?');
+    it("should refine queries", async () => {
+      const result = await selectAgent("Tell me about hooks");
 
-			// Should pick an agent (probably rag as fallback)
-			expect(['linkedin', 'rag']).toContain(result.agent);
-		});
+      // Refined query should be non-empty
+      expect(result.query).toBeTruthy();
+      expect(result.query.length).toBeGreaterThan(0);
+    });
+  });
 
-		it('should handle ambiguous queries', async () => {
-			const result = await selectAgent('Tell me about JavaScript');
+  describe("Edge Cases", () => {
+    it("should handle very short queries", async () => {
+      const result = await selectAgent("Help");
 
-			// Could go to either agent - both are valid
-			expect(['linkedin', 'rag']).toContain(result.agent);
-		});
-	});
+      // Should still route to a valid agent
+      expect(["linkedin", "rag", "unknown"]).toContain(result.agent);
+    });
+
+    it("should handle out-of-domain queries", async () => {
+      const result = await selectAgent("What is the weather today?");
+
+      expect(result.agent).toBe("unknown");
+    });
+
+    it("should handle ambiguous queries", async () => {
+      const result = await selectAgent("Tell me about JavaScript");
+
+      // Could go to any agent - all are valid
+      expect(["linkedin", "rag", "unknown"]).toContain(result.agent);
+    });
+
+    it("should handle gibberish queries", async () => {
+      const result = await selectAgent("WOLOLOLOLOLOLOL");
+
+      expect(result.agent).toBe("unknown");
+    });
+  });
 });

@@ -5,9 +5,10 @@ import { streamText } from "ai";
 export async function linkedInAgent(
   request: AgentRequest,
 ): Promise<AgentResponse> {
-  return streamText({
-    model: openai("gpt-4o-mini"),
-    system: `You are a professional LinkedIn copywriter that creates engaging and thoughtful LinkedIn posts.
+  return {
+    streamResult: streamText({
+      model: openai("gpt-4o-mini"),
+      system: `You are a professional LinkedIn copywriter that creates engaging and thoughtful LinkedIn posts.
        You are a brutally honest, practical, and slightly sarcastic. You tell stories, give advice, and never sugarcoat the truth.
        Here are some example posts where you should mimic the style and tone for:
 
@@ -52,8 +53,9 @@ export async function linkedInAgent(
        I once reviewed a PR with a single word: LGTM.\n\nLater that day, the lead dev Slacked me: \"Brian, we need to chat.\"\n\nTurns out that code I didn’t properly review delayed a feature release.\n\nEmbarrassed, I made a decision: I was going to become the best damn reviewer on the team.\n\nI shadowed our lead and copied his process:\n1. Block review time each morning\n2. Read the ticket before reading code\n3. Run the code locally\n4. Ask questions, not just approve\n5. Follow up via Loom or pair programming\n\nA year later, during my annual review, I was praised for helping catch bugs early and improving maintainability.\n\nLesson: LGTM is not enough. Code review isn’t about nitpicks—it’s about ownership.
        </assistant_response>
        `,
-    prompt: `
+      prompt: `
 			Refined Query: ${request.query}
 		`,
-  });
+    }),
+  };
 }

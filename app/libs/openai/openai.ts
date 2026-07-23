@@ -32,8 +32,11 @@
  * Learn more about Helicone: https://docs.helicone.ai/
  */
 
-import OpenAI from 'openai';
+import OpenAI from "openai";
+import { wrapOpenAI } from "langsmith/wrappers";
 
-export const openaiClient = new OpenAI({
-	apiKey: process.env.OPENAI_API_KEY as string,
+const baseClient = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY as string,
 });
+
+export const openaiClient = wrapOpenAI(baseClient);
